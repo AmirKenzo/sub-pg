@@ -94,7 +94,11 @@
     "copyBase64": "复制 Base64",
     "downloadWireGuard": "下载 WireGuard",
     "downloadStarted": "已开始下载",
-    "downloadFailed": "下载配置失败"
+    "downloadFailed": "下载配置失败",
+    "ping": "测试延迟",
+    "pinging": "测试中...",
+    "pingTimeout": "超时",
+    "pingUnavailable": "不可用"
   },
   "clipboard": {
     "copied": "已复制到剪贴板！",

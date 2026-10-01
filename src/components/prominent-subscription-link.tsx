@@ -50,12 +50,7 @@ export const ProminentSubscriptionLink = memo(({ hasChart }: ProminentSubscripti
 
         <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/[0.06] p-3.5">
           <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground">{t('config.subscriptionLink')}</p>
-              <p dir="ltr" className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
-                {subscriptionUrl.replace(/^https?:\/\//, '')}
-              </p>
-            </div>
+            <p className="min-w-0 truncate text-sm font-semibold text-foreground">{t('config.subscriptionLink')}</p>
             <div className="flex shrink-0 items-center gap-1.5">
               <button
                 onClick={handleShowQR}

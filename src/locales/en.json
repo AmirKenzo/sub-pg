@@ -94,7 +94,11 @@
     "copyBase64": "Copy Base64",
     "downloadWireGuard": "Download WireGuard",
     "downloadStarted": "Download started",
-    "downloadFailed": "Failed to download config"
+    "downloadFailed": "Failed to download config",
+    "ping": "Test ping",
+    "pinging": "Testing...",
+    "pingTimeout": "Timeout",
+    "pingUnavailable": "N/A"
   },
   "clipboard": {
     "copied": "Copied to clipboard!",

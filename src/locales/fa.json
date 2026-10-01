@@ -94,7 +94,11 @@
     "copyBase64": "کپی Base64",
     "downloadWireGuard": "دانلود WireGuard",
     "downloadStarted": "دانلود شروع شد",
-    "downloadFailed": "خطا در دانلود کانفیگ"
+    "downloadFailed": "خطا در دانلود کانفیگ",
+    "ping": "تست پینگ",
+    "pinging": "در حال تست...",
+    "pingTimeout": "قطع",
+    "pingUnavailable": "نامشخص"
   },
   "clipboard": {
     "copied": "در کلیپ‌بورد کپی شد!",
