@@ -131,13 +131,13 @@ export const AppsList = React.memo(function AppsList() {
                                 key={platformKey}
                                 value={platformKey}
                                 className={cn(
-                                    "rounded-2xl border bg-card overflow-hidden transition-colors",
+                                    "surface overflow-hidden transition-colors",
                                     isCurrentOS && "border-primary/30"
                                 )}
                             >
-                                <AccordionTrigger className="px-4 sm:px-5 py-4 hover:no-underline items-center cursor-pointer hover:bg-muted/40 transition-colors">
+                                <AccordionTrigger className="px-5 sm:px-6 py-4 hover:no-underline items-center cursor-pointer transition-colors">
                                     <div className="flex items-center gap-3 flex-1 text-left">
-                                        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
+                                        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
                                             <IconComponent className="size-4.5" />
                                         </span>
                                         <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -152,7 +152,7 @@ export const AppsList = React.memo(function AppsList() {
                                         </div>
                                     </div>
                                 </AccordionTrigger>
-                                <AccordionContent className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0">
+                                <AccordionContent className="px-5 sm:px-6 pb-5 sm:pb-6 pt-0">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 pt-2">
                                         {platformGroups[platformKey]!.map((app, idx) => {
                                             const desc = app.description?.[currentLang] || app.description?.en || ''
@@ -199,7 +199,7 @@ const AppCard = React.memo(function AppCard({ app, desc, dlToShow, fallbackIcon:
 
     return (
         <div className={cn(
-            "group relative rounded-xl border bg-background p-3.5 transition-colors hover:border-primary/30",
+            "group relative rounded-2xl border bg-muted/40 p-4 transition-colors hover:border-primary/30 hover:bg-muted/70",
             "flex flex-col gap-2.5",
             app.recommended && 'border-primary/30'
         )}>
@@ -209,11 +209,11 @@ const AppCard = React.memo(function AppCard({ app, desc, dlToShow, fallbackIcon:
                     <img
                         src={app.icon_url}
                         alt={app.name}
-                        className="size-9 rounded-lg object-cover shrink-0"
+                        className="size-10 rounded-xl object-cover shrink-0"
                         onError={() => setIconLoadFailed(true)}
                     />
                 ) : (
-                    <div className="size-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                    <div className="size-10 rounded-xl bg-card border flex items-center justify-center shrink-0">
                         <FallbackIcon className="w-4.5 h-4.5 text-muted-foreground" />
                     </div>
                 )}
@@ -245,7 +245,7 @@ const AppCard = React.memo(function AppCard({ app, desc, dlToShow, fallbackIcon:
                         <a
                             key={i}
                             href={dl.url}
-                            className="text-xs font-medium px-2.5 py-1.5 rounded-lg border hover:bg-muted inline-flex items-center gap-1.5 transition-colors"
+                            className="text-xs font-medium px-2.5 py-1.5 rounded-lg border bg-card hover:bg-muted inline-flex items-center gap-1.5 transition-colors"
                             target="_blank"
                             rel="noreferrer"
                             title={dl.name}

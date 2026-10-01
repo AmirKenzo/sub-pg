@@ -11,7 +11,8 @@ import { ConnectionLinks } from '@/components/connection-links';
 import { ProminentSubscriptionLink } from '@/components/prominent-subscription-link';
 import { AppsList } from '@/components/AppsList';
 import { formatRelativeExpiry, formatDate } from '@/lib/dateFormatter';
-import { RefreshCcw, Bell, ExternalLink, Smartphone } from 'lucide-react';
+import { RefreshCcw, ExternalLink, Smartphone, AlertTriangle, Megaphone, Gauge, CalendarClock, Activity, Wifi } from 'lucide-react';
+import { useFormatBytes, localizeDigits } from '@/lib/formatBytes';
 import { useDir } from '@/hooks/useDir';
 import { cn } from './lib/utils';
 import type { UsageDataPoint } from '@/types/user';
@@ -128,6 +129,7 @@ function App() {
   // Fetch chart data independently - don't wait for user info
   const { chartData, chartError } = useChartData(startTime, period, true);
   const dir = useDir();
+  const formatBytes = useFormatBytes();
   const normalizedStatus = useMemo(() => {
     if (!effectiveData?.status) return 'active';
     const status = String(effectiveData.status).toLowerCase();
@@ -182,23 +184,11 @@ function App() {
 
   // Status color mapping
   const statusConfig = {
-    active: { text: 'text-emerald-600 dark:text-emerald-400', soft: 'bg-emerald-500/10', fill: 'bg-emerald-500' },
-    disabled: { text: 'text-muted-foreground', soft: 'bg-muted', fill: 'bg-muted-foreground' },
-    limited: { text: 'text-red-600 dark:text-red-400', soft: 'bg-red-500/10', fill: 'bg-red-500' },
-    expired: { text: 'text-amber-600 dark:text-amber-400', soft: 'bg-amber-500/10', fill: 'bg-amber-500' },
-    on_hold: { text: 'text-violet-600 dark:text-violet-400', soft: 'bg-violet-500/10', fill: 'bg-violet-500' },
-  };
-
-
-  // Format bytes to human-readable
-  const formatBytes = (bytes: number) => {
-    if (!bytes || bytes === 0 || isNaN(bytes)) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    if (i < 0 || i >= sizes.length) return '0 B';
-    const value = bytes / Math.pow(k, i);
-    return `${value.toFixed(2)} ${sizes[i]}`;
+    active: { text: 'text-emerald-600 dark:text-emerald-400', soft: 'bg-emerald-500/10 ring-emerald-500/20', fill: 'bg-emerald-500', bar: 'from-emerald-400 to-emerald-500' },
+    disabled: { text: 'text-muted-foreground', soft: 'bg-muted ring-border', fill: 'bg-muted-foreground', bar: 'from-muted-foreground/60 to-muted-foreground' },
+    limited: { text: 'text-red-600 dark:text-red-400', soft: 'bg-red-500/10 ring-red-500/20', fill: 'bg-red-500', bar: 'from-red-400 to-red-500' },
+    expired: { text: 'text-amber-600 dark:text-amber-400', soft: 'bg-amber-500/10 ring-amber-500/20', fill: 'bg-amber-500', bar: 'from-amber-400 to-amber-500' },
+    on_hold: { text: 'text-violet-600 dark:text-violet-400', soft: 'bg-violet-500/10 ring-violet-500/20', fill: 'bg-violet-500', bar: 'from-violet-400 to-violet-500' },
   };
 
   // Show loading only if we have no data at all (not even initial data) and are still loading
@@ -206,7 +196,7 @@ function App() {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
-          <div className="w-10 h-10 border-[3px] border-muted border-t-primary rounded-full animate-spin"></div>
+          <div className="size-10 rounded-full border-[3px] border-muted border-t-primary animate-spin"></div>
         </div>
       </Layout>
     );
@@ -218,8 +208,11 @@ function App() {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen px-4">
-          <div className="text-center space-y-3 animate-fadeIn p-8 rounded-2xl bg-card border max-w-md">
-            <p className="text-lg font-semibold text-destructive">{t('dashboard.error')}</p>
+          <div className="surface max-w-md space-y-3 p-8 text-center animate-fadeIn">
+            <div className="icon-chip mx-auto size-12 bg-destructive/10 text-destructive">
+              <AlertTriangle className="size-6" />
+            </div>
+            <p className="text-lg font-semibold text-foreground">{t('dashboard.error')}</p>
             <p className="page-meta">{error.message}</p>
           </div>
         </div>
@@ -231,10 +224,15 @@ function App() {
 
   const statusStyle = statusConfig[normalizedStatus as keyof typeof statusConfig] || statusConfig.disabled;
   const hasDataLimit = !!effectiveData.data_limit && effectiveData.data_limit > 0;
-  const remainingTraffic = !hasDataLimit
-    ? '∞'
-    : formatBytes(Math.max(0, effectiveData.data_limit! - (effectiveData.used_traffic || 0)));
+  const usedTraffic = formatBytes(effectiveData.used_traffic || 0);
+  const totalLimit = hasDataLimit ? formatBytes(effectiveData.data_limit) : t('userInfo.unlimited');
+  const remainingTraffic = hasDataLimit
+    ? formatBytes(Math.max(0, effectiveData.data_limit - (effectiveData.used_traffic || 0)))
+    : '∞';
   const dateLocale = i18n.language === 'fa' ? 'fa-IR' : i18n.language;
+  const usagePercentLabel = hasDataLimit
+    ? `${Math.round(usagePercentage).toLocaleString(i18n.language === 'fa' ? 'fa-IR' : 'en-US')}%`
+    : '∞';
 
   // Expiry date for regular users, available duration for on_hold users
   const renderExpiryValue = () => {
@@ -264,19 +262,19 @@ function App() {
 
   return (
     <Layout>
-      <div className="mx-auto w-full max-w-6xl px-4 pt-6 sm:pt-10 space-y-5 sm:space-y-6">
+      <div className="mx-auto w-full max-w-6xl space-y-5 px-4 pt-6 sm:space-y-6 sm:px-6 sm:pt-10">
         {/* Header */}
         <header className="flex items-center justify-between gap-4 animate-fadeIn">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-lg font-semibold uppercase text-primary">
+          <div className="flex min-w-0 items-center gap-3.5">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-lg font-bold uppercase text-primary-foreground shadow-lg shadow-primary/20">
               {effectiveData.username?.charAt(0) || '?'}
             </div>
-            <div className="min-w-0">
-              <div className="flex min-w-0 items-center gap-2">
+            <div className="min-w-0 space-y-0.5">
+              <div className="flex min-w-0 items-center gap-1.5">
                 <h1
                   dir="ltr"
                   title={effectiveData.username}
-                  className="truncate text-lg font-semibold text-foreground sm:text-xl max-w-[45vw] sm:max-w-sm"
+                  className="max-w-[45vw] truncate text-lg font-bold tracking-tight text-foreground sm:max-w-sm sm:text-xl"
                 >
                   {effectiveData.username}
                 </h1>
@@ -287,7 +285,7 @@ function App() {
                     }
                   }}
                   disabled={isValidating || normalizedStatus === 'disabled'}
-                  className="shrink-0 cursor-pointer rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="shrink-0 cursor-pointer rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:cursor-not-allowed disabled:opacity-50"
                   title={normalizedStatus === 'disabled' ? 'Account disabled' : 'Refresh data'}
                   aria-label={normalizedStatus === 'disabled' ? 'Account disabled' : 'Refresh data'}
                 >
@@ -305,8 +303,10 @@ function App() {
 
         {/* Announcements */}
         {hasAnnouncement && (
-          <div className="flex items-start gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4 animate-fadeIn">
-            <Bell className="mt-0.5 size-4 shrink-0 text-primary" />
+          <div className="surface flex items-start gap-3.5 p-4 sm:p-5 animate-fadeIn">
+            <span className="icon-chip size-9">
+              <Megaphone className="size-4.5" />
+            </span>
             <div className="min-w-0 flex-1 space-y-1">
               <div className="text-sm font-semibold text-foreground">{t('userInfo.announcement')}</div>
               {announcementMessage && (
@@ -327,73 +327,85 @@ function App() {
           </div>
         )}
 
-        {/* Status & usage */}
-        <section className="rounded-2xl border bg-card p-5 sm:p-6 animate-fadeIn">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-4">
-              <span className={cn('inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold', statusStyle.soft, statusStyle.text)}>
-                <span className={cn('size-1.5 rounded-full', statusStyle.fill, normalizedStatus === 'active' && 'animate-pulse')} />
-                {t(`status.${normalizedStatus}`)}
-              </span>
-              <div>
-                <p className="page-label">{t('userInfo.usedTraffic')}</p>
-                <div dir="ltr" className={cn('mt-1 flex items-baseline gap-2', dir === 'rtl' && 'justify-end')}>
-                  <span className="text-3xl font-bold tracking-tight text-foreground tabular-nums sm:text-4xl">
-                    {formatBytes(effectiveData.used_traffic || 0)}
+        {/* Account overview */}
+        <section className="surface overflow-hidden animate-fadeIn">
+          <div className="grid md:grid-cols-[1.6fr_1fr]">
+            {/* Data usage */}
+            <div className="p-5 sm:p-7">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="icon-chip size-9">
+                    <Gauge className="size-4.5" />
                   </span>
-                  <span className="text-sm font-medium text-muted-foreground sm:text-base">
-                    / {hasDataLimit ? formatBytes(effectiveData.data_limit!) : t('userInfo.unlimited')}
-                  </span>
+                  <span className="text-sm font-medium text-muted-foreground">{t('userInfo.usedTraffic')}</span>
                 </div>
+                <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset', statusStyle.soft, statusStyle.text)}>
+                  <span className={cn('size-1.5 rounded-full', statusStyle.fill, normalizedStatus === 'active' && 'animate-pulse')} />
+                  {t(`status.${normalizedStatus}`)}
+                </span>
+              </div>
+
+              <div className="mt-6 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span dir="auto" className="text-4xl font-bold tracking-tight text-foreground tabular-nums sm:text-5xl">
+                  {usedTraffic}
+                </span>
+                <span className="text-sm font-medium text-muted-foreground sm:text-base">
+                  / <span dir="auto">{totalLimit}</span>
+                </span>
+              </div>
+
+              <div className="mt-5 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className={cn('h-full rounded-full bg-gradient-to-r transition-all duration-1000 ease-out rtl:bg-gradient-to-l', statusStyle.bar)}
+                  style={{ width: `${hasDataLimit ? Math.max(usagePercentage, usagePercentage > 0 ? 2 : 0) : 0}%` }}
+                />
+              </div>
+
+              <div className="mt-5 grid grid-cols-3 gap-3">
+                <MiniStat label={t('userInfo.used')} value={usagePercentLabel} />
+                <MiniStat label={t('remaining')} value={remainingTraffic} accent />
+                <MiniStat label={t('userInfo.totalLimit')} value={totalLimit} />
               </div>
             </div>
-            <div className="text-start sm:text-end">
-              <p className={cn('page-label', expiryInfo.isExpired && 'text-destructive')}>{expiryInfo.status}</p>
-              <p className="mt-1 text-lg font-semibold text-foreground sm:text-xl">{expiryInfo.time}</p>
+
+            {/* Time */}
+            <div className="flex flex-col border-t bg-muted/40 p-5 sm:p-7 md:border-t-0 md:border-s">
+              <div className="flex items-center gap-2.5">
+                <span className="icon-chip size-9">
+                  <CalendarClock className="size-4.5" />
+                </span>
+                <span className={cn('text-sm font-medium text-muted-foreground', expiryInfo.isExpired && 'text-destructive')}>
+                  {expiryInfo.status}
+                </span>
+              </div>
+              <p className="mt-4 text-2xl font-bold tracking-tight sm:mt-6 text-foreground sm:text-3xl">{localizeDigits(expiryInfo.time, i18n.language)}</p>
+              <div className="mt-auto pt-4 sm:pt-6">
+                <p className="text-xs font-medium text-muted-foreground">
+                  {effectiveData.status === 'on_hold' ? t('userInfo.duration') : t('userInfo.expiryDate')}
+                </p>
+                <p className="mt-1 text-sm font-semibold text-foreground">
+                  <span dir={effectiveData.status === 'on_hold' ? dir : 'ltr'}>{localizeDigits(renderExpiryValue(), i18n.language)}</span>
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="mt-6 space-y-2">
-            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className={cn('h-full rounded-full transition-all duration-1000 ease-out', statusStyle.fill)}
-                style={{ width: `${hasDataLimit ? usagePercentage : 0}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">
-                <span dir="ltr" className="font-semibold text-foreground tabular-nums">
-                  {hasDataLimit ? `${usagePercentage.toFixed(0)}%` : '∞'}
-                </span>{' '}
-                {t('userInfo.used')}
+          {/* Footer strip */}
+          <div className="grid grid-cols-2 divide-x border-t rtl:divide-x-reverse">
+            <FooterStat icon={<Activity className="size-4" />} label={t('userInfo.lifetimeTraffic')}>
+              <span dir="auto">{formatBytes(effectiveData.lifetime_used_traffic || 0)}</span>
+            </FooterStat>
+            <FooterStat icon={<Wifi className="size-4" />} label={t('userInfo.lastOnline')}>
+              <span dir="ltr">
+                {effectiveData.online_at ? localizeDigits(formatDate(effectiveData.online_at, dateLocale), i18n.language) : t('notConnectedYet')}
               </span>
-              <span className="text-muted-foreground">
-                {t('remaining')}:{' '}
-                <span dir="ltr" className="font-semibold text-foreground tabular-nums">{remainingTraffic}</span>
-              </span>
-            </div>
+            </FooterStat>
           </div>
         </section>
 
-        {/* Quick stats */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 animate-fadeIn">
-          <StatTile label={t('userInfo.lifetimeTraffic')}>
-            <span dir="ltr">{formatBytes(effectiveData.lifetime_used_traffic || 0)}</span>
-          </StatTile>
-          <StatTile label={effectiveData.status === 'on_hold' ? t('userInfo.duration') : t('userInfo.expiryDate')}>
-            <span dir={effectiveData.status === 'on_hold' ? dir : 'ltr'}>{renderExpiryValue()}</span>
-          </StatTile>
-          <StatTile label={t('userInfo.lastOnline')} className="col-span-2 sm:col-span-1">
-            <span dir="ltr" className="inline-flex items-center gap-2">
-              <OnlineBadge lastOnline={effectiveData.online_at} />
-              {effectiveData.online_at ? formatDate(effectiveData.online_at, dateLocale) : t('notConnectedYet')}
-            </span>
-          </StatTile>
-        </div>
-
         {/* Links & usage chart */}
         {(hasLinks || hasChartContainer) && (
-          <div className={cn('grid grid-cols-1 gap-5 sm:gap-6 w-full', hasLinks && hasChartContainer && 'lg:grid-cols-2')}>
+          <div className={cn('grid w-full grid-cols-1 gap-5 sm:gap-6', hasLinks && hasChartContainer && 'lg:grid-cols-2')}>
             {hasLinks ? (
               <div className={cn('min-w-0', hasChartContainer && 'order-2 lg:order-1')}>
                 <ConnectionLinks links={configData.links} />
@@ -417,11 +429,13 @@ function App() {
         )}
 
         {/* Apps */}
-        <section className="space-y-3 pt-2 animate-fadeIn">
-          <h2 className="page-section-title flex items-center gap-2">
-            <Smartphone className="size-5 text-primary" />
-            {t('apps.title')}
-          </h2>
+        <section className="space-y-4 pt-2 animate-fadeIn">
+          <div className="flex items-center gap-2.5">
+            <span className="icon-chip size-9">
+              <Smartphone className="size-4.5" />
+            </span>
+            <h2 className="page-section-title">{t('apps.title')}</h2>
+          </div>
           <AppsList />
         </section>
       </div>
@@ -429,11 +443,33 @@ function App() {
   );
 }
 
-function StatTile({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
+function MiniStat({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className={cn('rounded-2xl border bg-card p-4 sm:p-5', className)}>
-      <p className="page-label">{label}</p>
-      <div className="mt-1.5 text-base font-semibold text-foreground break-words">{children}</div>
+    <div className="min-w-0 rounded-2xl bg-muted/60 px-3 py-2.5">
+      <p className="text-xs leading-tight text-muted-foreground">{label}</p>
+      <p
+        dir="auto"
+        className={cn(
+          'mt-1 break-words text-sm font-semibold leading-snug tabular-nums sm:text-base',
+          accent ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'
+        )}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function FooterStat({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
+  return (
+    <div className="flex min-w-0 items-center gap-3 px-5 py-4 sm:px-7">
+      <span className="hidden size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground sm:inline-flex">
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="truncate text-xs text-muted-foreground">{label}</p>
+        <p className="mt-0.5 truncate text-sm font-semibold text-foreground">{children}</p>
+      </div>
     </div>
   );
 }

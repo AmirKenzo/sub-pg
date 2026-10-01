@@ -97,74 +97,85 @@ export const ConnectionLinks = memo(({ links }: ConnectionLinksProps) => {
   const iconButtonClass = 'inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors cursor-pointer hover:bg-muted hover:text-foreground';
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border bg-card animate-fadeIn">
-      <div className="flex items-center justify-between gap-3 border-b px-4 py-4 sm:px-5">
-        <h2 className="page-section-title flex items-center gap-2">
-          <Link2 className="size-5 text-primary" />
-          {t('config.title')}
-        </h2>
+    <div className="surface flex h-full flex-col overflow-hidden animate-fadeIn">
+      <div className="flex items-center justify-between gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="icon-chip size-9">
+            <Link2 className="size-4.5" />
+          </span>
+          <h2 className="page-section-title truncate">{t('config.title')}</h2>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground tabular-nums">
+            {parsedLinks.length}
+          </span>
+        </div>
         <button
           onClick={handleCopyAll}
           className={cn(
-            'inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors',
+            'inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm font-medium transition-colors',
             copyAllSuccess
               ? 'border-primary/40 bg-primary/10 text-primary'
-              : 'text-foreground hover:bg-muted'
+              : 'bg-card text-foreground hover:bg-muted'
           )}
           title={copyAllSuccess ? t('apps.copyAllSuccess') : t('apps.copyAll')}
         >
           {copyAllSuccess ? <Check className="size-4" /> : <Files className="size-4" />}
-          {copyAllSuccess ? t('apps.copyAllSuccess') : t('apps.copyAll')}
+          <span className="hidden sm:inline">{copyAllSuccess ? t('apps.copyAllSuccess') : t('apps.copyAll')}</span>
         </button>
       </div>
 
-      <div className="max-h-[420px] flex-1 divide-y overflow-y-auto">
-        {/* Subscription Link */}
-        <div className="flex items-center gap-3 bg-primary/5 px-4 py-3 sm:px-5">
-          <span className="page-badge shrink-0 rounded-md bg-primary px-2 py-0.5 text-primary-foreground">
-            SUB
-          </span>
-          <div className="page-item-title min-w-0 flex-1 truncate">
-            {t('config.subscriptionLink')}
-          </div>
-          <div className="flex shrink-0 gap-0.5">
-            <button
-              onClick={handleCopySubscription}
-              className={cn(iconButtonClass, isCopied(subscriptionUrl) && 'text-primary')}
-              title={t('qr.copy')}
-            >
-              {isCopied(subscriptionUrl) ? <Check className="size-4" /> : <Copy className="size-4" />}
-            </button>
-            <button
-              onClick={() => handleShowQR({
-                protocol: 'unknown',
-                name: t('config.subscriptionLink'),
-                emoji: '📱',
-                raw: subscriptionUrl
-              })}
-              className={iconButtonClass}
-              title={t('qr.show')}
-            >
-              <ScanQrCode className="size-4" />
-            </button>
+      {/* Subscription Link */}
+      <div className="px-5 pt-4 sm:px-6">
+        <div className="rounded-2xl border border-primary/20 bg-primary/[0.06] p-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">{t('config.subscriptionLink')}</p>
+              <p dir="ltr" className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+                {subscriptionUrl.replace(/^https?:\/\//, '')}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                onClick={() => handleShowQR({
+                  protocol: 'unknown',
+                  name: t('config.subscriptionLink'),
+                  emoji: '📱',
+                  raw: subscriptionUrl
+                })}
+                className="inline-flex size-9 cursor-pointer items-center justify-center rounded-xl border bg-card text-foreground transition-colors hover:bg-muted"
+                title={t('qr.show')}
+              >
+                <ScanQrCode className="size-4" />
+              </button>
+              <button
+                onClick={handleCopySubscription}
+                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-xl bg-primary px-3.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+                title={t('qr.copy')}
+              >
+                {isCopied(subscriptionUrl) ? <Check className="size-4" /> : <Copy className="size-4" />}
+                <span className="hidden sm:inline">{t('qr.copy')}</span>
+              </button>
+            </div>
           </div>
         </div>
+      </div>
 
+      {/* Config list */}
+      <div className="mt-3 max-h-[380px] flex-1 space-y-1 overflow-y-auto px-3 pb-4 sm:px-4">
         {parsedLinks.map((link, index) => {
           const copied = isCopied(`${link.raw}:config`);
 
           return (
             <div
               key={index}
-              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40 sm:px-5"
+              className="group flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-muted/70"
             >
               {/* Protocol Badge */}
-              <span className="page-badge min-w-11 shrink-0 rounded-md bg-primary/10 px-2 py-0.5 text-center text-primary">
+              <span className={cn('page-badge min-w-12 shrink-0 rounded-lg px-2 py-1 text-center text-[11px] ring-1 ring-inset', getProtocolColor(link.protocol))}>
                 {getProtocolBadge(link.protocol)}
               </span>
 
               {/* Name */}
-              <div dir="ltr" className={cn('page-item-title flex min-w-0 flex-1 items-center gap-2', dir === 'rtl' ? 'justify-end text-right' : 'text-left')}>
+              <div dir="ltr" className={cn('flex min-w-0 flex-1 items-center gap-2 text-sm font-medium text-foreground', dir === 'rtl' ? 'justify-end text-right' : 'text-left')}>
                 {link.emoji && <span className="shrink-0 text-sm">{link.emoji}</span>}
                 <span className="truncate">{link.name}</span>
               </div>
@@ -212,3 +223,14 @@ export const ConnectionLinks = memo(({ links }: ConnectionLinksProps) => {
   );
 });
 
+const PROTOCOL_COLORS: Partial<Record<ParsedLink['protocol'], string>> = {
+  vless: 'bg-sky-500/10 text-sky-600 ring-sky-500/20 dark:text-sky-400',
+  vmess: 'bg-violet-500/10 text-violet-600 ring-violet-500/20 dark:text-violet-400',
+  trojan: 'bg-rose-500/10 text-rose-600 ring-rose-500/20 dark:text-rose-400',
+  shadowsocks: 'bg-amber-500/10 text-amber-600 ring-amber-500/20 dark:text-amber-400',
+  hysteria: 'bg-emerald-500/10 text-emerald-600 ring-emerald-500/20 dark:text-emerald-400',
+  wireguard: 'bg-teal-500/10 text-teal-600 ring-teal-500/20 dark:text-teal-400',
+};
+
+const getProtocolColor = (protocol: ParsedLink['protocol']): string =>
+  PROTOCOL_COLORS[protocol] ?? 'bg-primary/10 text-primary ring-primary/20';

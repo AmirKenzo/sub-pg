@@ -6,13 +6,8 @@ import { useTranslation } from "react-i18next"
 import type { TooltipProps } from "recharts"
 import { dateUtils } from "@/lib/dateFormatter"
 import { ChartArea } from "lucide-react"
+import { formatBytes } from "@/lib/formatBytes"
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import {
   type ChartConfig,
   ChartContainer,
@@ -27,16 +22,6 @@ const chartConfig = {
 } satisfies ChartConfig
 
 const TRAFFIC_SERIES_COLOR = chartConfig.traffic.color ?? "var(--primary)"
-
-const formatBytes = (bytes: number) => {
-  if (bytes === 0) return "0 B"
-
-  const k = 1024
-  const sizes = ["B", "KB", "MB", "GB", "TB"]
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-
-  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`
-}
 
 interface TrafficDataPoint {
   period_start: string
@@ -110,7 +95,7 @@ const CustomTrafficTooltip = React.memo(function CustomTrafficTooltip({
 
   return (
     <div
-      className={`min-w-[140px] rounded-lg border border-border bg-background p-3 text-sm shadow-xl ${isRTL ? 'text-right' : 'text-left'}`}
+      className={`min-w-[140px] rounded-xl border border-border bg-popover p-3 text-sm shadow-xl ${isRTL ? 'text-right' : 'text-left'}`}
       dir={isRTL ? 'rtl' : 'ltr'}
     >
       <div className={`mb-2 text-sm font-semibold text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
@@ -120,8 +105,8 @@ const CustomTrafficTooltip = React.memo(function CustomTrafficTooltip({
       </div>
       <div className={`text-base font-bold text-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
         <span>{t('usage.totalUsage')}: </span>
-        <span dir="ltr" className="inline-block font-mono">
-          {formatBytes(data._bytes)}
+        <span dir="auto" className="inline-block tabular-nums">
+          {formatBytes(data._bytes, i18n.language)}
         </span>
       </div>
     </div>
@@ -166,26 +151,28 @@ export const TrafficChart = React.memo(function TrafficChart({
   ]), [t])
 
   return (
-    <Card className="h-full gap-0 overflow-hidden rounded-2xl py-0 shadow-none">
-      <CardHeader className="flex flex-col gap-3 border-b px-4 py-4 sm:px-5">
+    <div className="surface flex h-full flex-col overflow-hidden">
+      <div className="flex flex-col gap-4 px-5 pt-5 sm:px-6 sm:pt-6">
         <div className="flex w-full flex-wrap items-center justify-between gap-2">
-          <CardTitle className="page-section-title flex items-center gap-2">
-            <ChartArea className="size-5 text-primary" />
-            {t('usage.title')}
-          </CardTitle>
+          <div className="flex items-center gap-2.5">
+            <span className="icon-chip size-9">
+              <ChartArea className="size-4.5" />
+            </span>
+            <h2 className="page-section-title">{t('usage.title')}</h2>
+          </div>
           {totalUsedBytes > 0 && (
-            <span dir="ltr" className="rounded-lg bg-primary/10 px-2.5 py-1 text-sm font-semibold text-primary tabular-nums">
-              {formatBytes(totalUsedBytes)}
+            <span dir="auto" className="rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary tabular-nums">
+              {formatBytes(totalUsedBytes, i18n.language)}
             </span>
           )}
         </div>
-        <div className="flex w-full gap-1 overflow-x-auto rounded-lg bg-muted p-1">
+        <div className="flex w-full gap-1 overflow-x-auto rounded-xl bg-muted p-1">
           {timeRangeOptions.map((option) => (
             <button
               key={option.value}
               onClick={() => onTimeRangeChange?.(option.value)}
-              className={`flex-1 cursor-pointer whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium transition-all sm:text-sm ${timeRange === option.value
-                ? 'bg-background text-foreground shadow-sm'
+              className={`flex-1 cursor-pointer whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all sm:text-sm ${timeRange === option.value
+                ? 'bg-card text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
                 }`}
             >
@@ -193,8 +180,8 @@ export const TrafficChart = React.memo(function TrafficChart({
             </button>
           ))}
         </div>
-      </CardHeader>
-      <CardContent className="overflow-x-hidden px-2 py-4 sm:px-5 sm:py-5">
+      </div>
+      <div className="flex-1 overflow-x-hidden px-2 pt-4 pb-4 sm:px-5 sm:pb-5">
         {error ? (
           <div className="h-[250px] w-full flex items-center justify-center text-destructive text-sm">
             {error.message || t('common.error')}
@@ -289,7 +276,7 @@ export const TrafficChart = React.memo(function TrafficChart({
 
             {/* Loading Overlay - Only shown when loading */}
             {isLoading && (
-              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
+              <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-card/80 backdrop-blur-sm">
                 <span className="text-muted-foreground">
                   {t('common.loading')}
                 </span>
@@ -297,8 +284,8 @@ export const TrafficChart = React.memo(function TrafficChart({
             )}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 })
 

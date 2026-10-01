@@ -1,5 +1,5 @@
 import useSWR from 'swr';
-import { fetcher, getBaseUrl } from '@/lib/fetcher';
+import { fetcher, getBaseUrl, textFetcher } from '@/lib/fetcher';
 import useSWRImmutable from 'swr/immutable'
 import type { UserInfo, ConfigData, ChartData, AppClient, InfoHeaders } from '@/types/user';
 
@@ -48,28 +48,48 @@ export const useUserInfo = () => {
   return { data, headers, error, isLoading: shouldShowLoading, isValidating, refresh: handleRefresh };
 };
 
+const SUPPORTED_LINK_PREFIXES = [
+  'vless://',
+  'vmess://',
+  'trojan://',
+  'ss://',
+  'shadowsocks://',
+  'wireguard://',
+  'hysteria2://',
+  'hysteria://',
+];
+
+const filterSupportedLinks = (links: string[]): string[] =>
+  links
+    .map((link) => link?.trim())
+    .filter((link): link is string => !!link && SUPPORTED_LINK_PREFIXES.some((prefix) => link.startsWith(prefix)));
+
 export const useConfigData = () => {
   const initialLinksArray = typeof window !== 'undefined'
     ? window.__INITIAL_DATA__?.links
     : undefined;
-  
-  // Only use Jinja-rendered data, no network requests
-  const data: ConfigData | undefined = initialLinksArray && initialLinksArray.length > 0
-    ? {
-        links: initialLinksArray.filter(link => 
-          link && link.length > 0 && (
-            link.startsWith('vless://') ||
-            link.startsWith('vmess://') ||
-            link.startsWith('trojan://') ||
-            link.startsWith('ss://') ||
-            link.startsWith('shadowsocks://') ||
-            link.startsWith('wireguard://') ||
-            link.startsWith('hysteria2://') ||
-            link.startsWith('hysteria://')
-          )
-        )
-      }
-    : undefined;
+  const hasInitialLinks = !!initialLinksArray && initialLinksArray.length > 0;
+
+  // Fall back to the panel's plain-text links endpoint when the template didn't inject links
+  // (e.g. local development, where the Jinja template is not rendered)
+  const { data: fetchedLinksText } = useSWRImmutable<string>(
+    hasInitialLinks ? null : `${getBaseUrl()}${window.location.pathname.replace(/\/$/, '')}/links`,
+    textFetcher,
+    {
+      errorRetryCount: 1,
+      revalidateOnFocus: false,
+      onError: (error) => {
+        console.warn('Failed to fetch config links:', error);
+      },
+    }
+  );
+
+  const sourceLinks = hasInitialLinks
+    ? initialLinksArray
+    : fetchedLinksText?.split(/\r?\n/) ?? [];
+  const links = filterSupportedLinks(sourceLinks);
+
+  const data: ConfigData | undefined = links.length > 0 ? { links } : undefined;
 
   return { data };
 };

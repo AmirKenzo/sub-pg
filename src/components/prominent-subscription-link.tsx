@@ -40,39 +40,39 @@ export const ProminentSubscriptionLink = memo(({ hasChart }: ProminentSubscripti
       "animate-fadeIn",
       hasChart ? 'order-2 lg:order-1' : ''
     )}>
-      <div className="overflow-hidden rounded-2xl border bg-card">
-        <div className="border-b px-4 py-4 sm:px-5">
-          <h2 className="page-section-title flex items-center gap-2">
-            <Link2 className="size-5 text-primary" />
-            {t('config.title')}
-          </h2>
+      <div className="surface overflow-hidden p-5 sm:p-6">
+        <div className="flex items-center gap-2.5">
+          <span className="icon-chip size-9">
+            <Link2 className="size-4.5" />
+          </span>
+          <h2 className="page-section-title">{t('config.title')}</h2>
         </div>
 
-        <div className="flex items-center gap-3 bg-primary/5 px-4 py-3 sm:px-5">
-          <span className="page-badge shrink-0 rounded-md bg-primary px-2 py-0.5 text-primary-foreground">
-            SUB
-          </span>
-          <div className="page-item-title min-w-0 flex-1 truncate">
-            {t('config.subscriptionLink')}
-          </div>
-          <div className="flex shrink-0 gap-0.5">
-            <button
-              onClick={handleCopy}
-              className={cn(
-                'inline-flex size-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-muted',
-                isCopied(subscriptionUrl) ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-              )}
-              title={t('qr.copy')}
-            >
-              {isCopied(subscriptionUrl) ? <Check className="size-4" /> : <Copy className="size-4" />}
-            </button>
-            <button
-              onClick={handleShowQR}
-              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              title={t('qr.show')}
-            >
-              <ScanQrCode className="size-4" />
-            </button>
+        <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/[0.06] p-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">{t('config.subscriptionLink')}</p>
+              <p dir="ltr" className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+                {subscriptionUrl.replace(/^https?:\/\//, '')}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                onClick={handleShowQR}
+                className="inline-flex size-9 cursor-pointer items-center justify-center rounded-xl border bg-card text-foreground transition-colors hover:bg-muted"
+                title={t('qr.show')}
+              >
+                <ScanQrCode className="size-4" />
+              </button>
+              <button
+                onClick={handleCopy}
+                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-xl bg-primary px-3.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+                title={t('qr.copy')}
+              >
+                {isCopied(subscriptionUrl) ? <Check className="size-4" /> : <Copy className="size-4" />}
+                <span className="hidden sm:inline">{t('qr.copy')}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
