@@ -1,6 +1,6 @@
 import { useState, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useUserInfo, useConfigData, useChartData } from '@/hooks/useUserData';
+import { useUserInfo, useConfigData, useChartData, useSupportUrl } from '@/hooks/useUserData';
 import { useLanguage } from '@/hooks/useLanguage';
 import { Layout } from '@/components/layout';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -10,12 +10,25 @@ import { TrafficChart } from '@/components/traffic-chart';
 import { ConnectionLinks } from '@/components/connection-links';
 import { ProminentSubscriptionLink } from '@/components/prominent-subscription-link';
 import { AppsList } from '@/components/AppsList';
+import { QuickConnect } from '@/components/quick-connect';
+import { InstallAppButton } from '@/components/install-app-button';
 import { formatRelativeExpiry, formatDate } from '@/lib/dateFormatter';
-import { RefreshCcw, ExternalLink, Smartphone, AlertTriangle, Megaphone, Gauge, CalendarClock, Activity, Wifi } from 'lucide-react';
+import { RefreshCcw, ExternalLink, Smartphone, AlertTriangle, Megaphone, Gauge, CalendarClock, Activity, Wifi, TrendingUp, RotateCcw, CalendarPlus } from 'lucide-react';
 import { useFormatBytes, localizeDigits } from '@/lib/formatBytes';
 import { useDir } from '@/hooks/useDir';
 import { cn } from './lib/utils';
 import type { UsageDataPoint } from '@/types/user';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const FORECAST_WINDOW_DAYS = 7;
+const EXPIRY_WARNING_DAYS = 3;
+const LOW_DATA_WARNING_PERCENT = 10;
+
+const FOOTER_GRID_COLUMNS: Record<number, string> = {
+  2: 'sm:grid-cols-2',
+  3: 'sm:grid-cols-3',
+  4: 'sm:grid-cols-4',
+};
 
 const isUsageDataSeries = (value: unknown): value is UsageDataPoint[] => Array.isArray(value);
 
@@ -145,6 +158,36 @@ function App() {
     return Math.min(isNaN(percentage) ? 0 : percentage, 100);
   }, [effectiveData]);
 
+  // Last 7 days of usage drive the daily average and the data forecast
+  const [forecastStart] = useState(() => new Date(Date.now() - FORECAST_WINDOW_DAYS * DAY_MS));
+  const { chartData: weeklyChartData } = useChartData(forecastStart, 'day', true);
+  const { supportUrl } = useSupportUrl();
+
+  const daysUntilExpiry = useMemo(() => {
+    if (!effectiveData?.expire || effectiveData.status === 'on_hold') return null;
+    const expireTime = new Date(effectiveData.expire).getTime();
+    return Number.isFinite(expireTime) ? (expireTime - Date.now()) / DAY_MS : null;
+  }, [effectiveData?.expire, effectiveData?.status]);
+
+  const usageInsights = useMemo(() => {
+    if (!effectiveData) return null;
+    const points = getChartUsageData(weeklyChartData?.stats);
+    if (points.length === 0) return null;
+
+    const total = points.reduce((sum, point) => sum + (point.total_traffic || 0), 0);
+    // Newer accounts haven't had a full week yet, so average over their actual age
+    const createdAt = effectiveData.created_at ? new Date(effectiveData.created_at).getTime() : Number.NaN;
+    const accountAgeDays = Number.isFinite(createdAt) ? (Date.now() - createdAt) / DAY_MS : FORECAST_WINDOW_DAYS;
+    const dailyAverage = total / Math.min(FORECAST_WINDOW_DAYS, Math.max(1, accountAgeDays));
+
+    const remaining = effectiveData.data_limit > 0
+      ? Math.max(0, effectiveData.data_limit - (effectiveData.used_traffic || 0))
+      : null;
+    const daysUntilDataRunsOut = remaining !== null && dailyAverage > 0 ? remaining / dailyAverage : null;
+
+    return { dailyAverage, daysUntilDataRunsOut };
+  }, [effectiveData, weeklyChartData]);
+
   // Calculate expiry information
   const expiryInfo = useMemo(() => {
     if (!effectiveData) return { status: '', time: '', isExpired: false };
@@ -255,6 +298,37 @@ function App() {
     return isUnlimited ? t('userInfo.noTimeLimit') : formatDate(effectiveData.expire, dateLocale);
   };
 
+  const numberLocale = i18n.language === 'fa' ? 'fa-IR' : 'en-US';
+  const remainingPercent = 100 - usagePercentage;
+  const isActive = normalizedStatus === 'active';
+  const warnings: string[] = [];
+  if (isActive && daysUntilExpiry !== null && daysUntilExpiry > 0 && daysUntilExpiry < EXPIRY_WARNING_DAYS) {
+    warnings.push(t('insights.expiringSoon', { days: EXPIRY_WARNING_DAYS.toLocaleString(numberLocale) }));
+  }
+  if (isActive && hasDataLimit && remainingPercent < LOW_DATA_WARNING_PERCENT) {
+    warnings.push(t('insights.lowData', { percent: Math.max(0, Math.round(remainingPercent)).toLocaleString(numberLocale) }));
+  }
+
+  // Forecast sentence based on the recent daily average
+  let forecastText: string | null = null;
+  if (usageInsights?.daysUntilDataRunsOut != null) {
+    forecastText = daysUntilExpiry !== null && usageInsights.daysUntilDataRunsOut >= daysUntilExpiry
+      ? t('insights.forecastEnough')
+      : t('insights.forecastRunsOut', { days: Math.max(1, Math.ceil(usageInsights.daysUntilDataRunsOut)).toLocaleString(numberLocale) });
+  }
+
+  const resetStrategy = effectiveData.data_limit_reset_strategy;
+  const showResetStrategy = !!resetStrategy && resetStrategy !== 'no_reset';
+  const nextPlan = effectiveData.next_plan;
+  const nextPlanDays = nextPlan?.expire ? Math.round(nextPlan.expire / 86400) : 0;
+  const nextPlanText = nextPlan
+    ? [
+        nextPlan.data_limit > 0 ? formatBytes(nextPlan.data_limit) : t('userInfo.unlimited'),
+        nextPlanDays > 0 ? `${nextPlanDays.toLocaleString(numberLocale)} ${t(nextPlanDays === 1 ? 'time.day' : 'time.days')}` : null,
+      ].filter(Boolean).join(' · ')
+    : null;
+  const footerItemCount = 2 + (showResetStrategy ? 1 : 0) + (nextPlanText ? 1 : 0);
+
   const hasLinks = !!configData?.links && configData.links.length > 0;
   const hasChartContainer = !chartError; // Always show chart container if no error (even during loading)
   const usageData = getChartUsageData(chartData?.stats);
@@ -296,10 +370,36 @@ function App() {
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <InstallAppButton username={effectiveData.username} />
             <LanguageSwitcher />
             <ThemeToggle />
           </div>
         </header>
+
+        {/* Account warnings */}
+        {warnings.length > 0 && (
+          <div className="flex items-start gap-3.5 rounded-3xl border border-amber-500/30 bg-amber-500/10 p-4 sm:p-5 animate-fadeIn">
+            <span className="icon-chip size-9 bg-amber-500/15 text-amber-600 dark:text-amber-400">
+              <AlertTriangle className="size-4.5" />
+            </span>
+            <div className="min-w-0 flex-1 space-y-1">
+              {warnings.map((warning) => (
+                <p key={warning} className="text-sm font-semibold text-foreground">{warning}</p>
+              ))}
+              <p className="text-sm text-muted-foreground">
+                {t('insights.renewHint')}
+                {supportUrl && (
+                  <>
+                    {' '}
+                    <a href={supportUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
+                      {t('userInfo.supportUrl')}
+                    </a>
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Announcements */}
         {hasAnnouncement && (
@@ -366,6 +466,17 @@ function App() {
                 <MiniStat label={t('remaining')} value={remainingTraffic} accent />
                 <MiniStat label={t('userInfo.totalLimit')} value={totalLimit} />
               </div>
+
+              {usageInsights && (
+                <div className="mt-4 flex items-start gap-2 text-sm text-muted-foreground">
+                  <TrendingUp className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <p>
+                    {t('insights.dailyAverage')}:{' '}
+                    <span dir="auto" className="font-semibold text-foreground">{formatBytes(usageInsights.dailyAverage)}</span>
+                    {forecastText && <span> · {forecastText}</span>}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Time */}
@@ -391,7 +502,7 @@ function App() {
           </div>
 
           {/* Footer strip */}
-          <div className="grid grid-cols-2 divide-x border-t rtl:divide-x-reverse">
+          <div className={cn('grid grid-cols-2 gap-px border-t bg-border', FOOTER_GRID_COLUMNS[footerItemCount])}>
             <FooterStat icon={<Activity className="size-4" />} label={t('userInfo.lifetimeTraffic')}>
               <span dir="auto">{formatBytes(effectiveData.lifetime_used_traffic || 0)}</span>
             </FooterStat>
@@ -400,8 +511,20 @@ function App() {
                 {effectiveData.online_at ? localizeDigits(formatDate(effectiveData.online_at, dateLocale), i18n.language) : t('notConnectedYet')}
               </span>
             </FooterStat>
+            {showResetStrategy && (
+              <FooterStat icon={<RotateCcw className="size-4" />} label={t('insights.resetStrategy')}>
+                {t(`insights.reset.${resetStrategy}`, { defaultValue: resetStrategy })}
+              </FooterStat>
+            )}
+            {nextPlanText && (
+              <FooterStat icon={<CalendarPlus className="size-4" />} label={t('insights.nextPlan')}>
+                <span dir="auto">{nextPlanText}</span>
+              </FooterStat>
+            )}
           </div>
         </section>
+
+        <QuickConnect />
 
         {/* Links & usage chart */}
         {(hasLinks || hasChartContainer) && (
@@ -429,7 +552,7 @@ function App() {
         )}
 
         {/* Apps */}
-        <section className="space-y-4 pt-2 animate-fadeIn">
+        <section id="apps" className="scroll-mt-6 space-y-4 pt-2 animate-fadeIn">
           <div className="flex items-center gap-2.5">
             <span className="icon-chip size-9">
               <Smartphone className="size-4.5" />
@@ -462,7 +585,7 @@ function MiniStat({ label, value, accent = false }: { label: string; value: stri
 
 function FooterStat({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
   return (
-    <div className="flex min-w-0 items-center gap-3 px-5 py-4 sm:px-7">
+    <div className="flex min-w-0 items-center gap-3 bg-card px-5 py-4 sm:px-7">
       <span className="hidden size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground sm:inline-flex">
         {icon}
       </span>

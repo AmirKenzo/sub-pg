@@ -188,3 +188,22 @@ export function parseLinks(links: string[]): ParsedLink[] {
   return links.map((link, index) => parseLink(link, index));
 }
 
+
+// Panels publish usage/expiry notes as fake configs pointing at a placeholder address
+const PLACEHOLDER_SERVERS = new Set(['0.0.0.0', '127.0.0.1', '::', '[::]', 'localhost']);
+
+/** True for informational entries (e.g. "Total: 50 GB") that aren't usable servers. */
+export function isInfoLink(link: ParsedLink): boolean {
+  return !!link.server && PLACEHOLDER_SERVERS.has(link.server);
+}
+
+const FLAG_REGEX = /[\u{1F1E6}-\u{1F1FF}]{2}/u;
+
+/** Returns the ISO country code from a flag emoji in the config name (e.g. "🇫🇮" -> "FI"). */
+export function getCountryCode(link: ParsedLink): string | null {
+  const flag = link.emoji?.match(FLAG_REGEX)?.[0] ?? link.name.match(FLAG_REGEX)?.[0];
+  if (!flag) return null;
+  return Array.from(flag)
+    .map((char) => String.fromCharCode((char.codePointAt(0) ?? 0) - 0x1f1e6 + 65))
+    .join('');
+}

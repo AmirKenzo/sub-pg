@@ -132,5 +132,51 @@
       "androidtv": "Android TV",
       "other": "其他"
     }
+  },
+  "linksView": {
+    "searchPlaceholder": "按名称或国家搜索...",
+    "all": "全部",
+    "byCountry": "按国家",
+    "fastest": "最快",
+    "copyFastest": "复制最快",
+    "noResults": "没有匹配的配置",
+    "otherCountry": "其他",
+    "pingFirst": "正在测试延迟以按速度排序..."
+  },
+  "quickConnect": {
+    "title": "快速连接",
+    "subtitle": "三步完成连接",
+    "step1": "安装应用",
+    "step2": "添加订阅",
+    "step3": "连接",
+    "step3Hint": "打开应用，选择服务器并点击连接",
+    "addTo": "添加到 {{app}}",
+    "copyLink": "复制订阅链接",
+    "otherApps": "查看全部应用"
+  },
+  "insights": {
+    "dailyAverage": "日均用量",
+    "forecastRunsOut": "按此速度，流量将在 {{days}} 天后用完",
+    "forecastEnough": "按此速度，流量足够用到到期",
+    "lowData": "流量仅剩 {{percent}}%",
+    "expiringSoon": "您的订阅将在 {{days}} 天内到期",
+    "renewHint": "请联系客服续费。",
+    "resetStrategy": "流量重置",
+    "nextPlan": "下一个套餐",
+    "reset": {
+      "no_reset": "不重置",
+      "day": "每天",
+      "week": "每周",
+      "month": "每月",
+      "year": "每年"
+    }
+  },
+  "install": {
+    "button": "安装应用",
+    "title": "添加到主屏幕",
+    "iosStep1": "在 Safari 中点击“分享”按钮",
+    "iosStep2": "选择“添加到主屏幕”",
+    "iosStep3": "点击“添加”",
+    "close": "知道了"
   }
 }

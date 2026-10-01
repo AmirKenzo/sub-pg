@@ -132,5 +132,51 @@
       "androidtv": "Android TV",
       "other": "Other"
     }
+  },
+  "linksView": {
+    "searchPlaceholder": "Search by name or country...",
+    "all": "All",
+    "byCountry": "By country",
+    "fastest": "Fastest",
+    "copyFastest": "Copy fastest",
+    "noResults": "No configs match your search",
+    "otherCountry": "Other",
+    "pingFirst": "Testing ping to sort configs by speed..."
+  },
+  "quickConnect": {
+    "title": "Quick connect",
+    "subtitle": "Get connected in three steps",
+    "step1": "Install the app",
+    "step2": "Add your subscription",
+    "step3": "Connect",
+    "step3Hint": "Open the app, pick a server and tap connect",
+    "addTo": "Add to {{app}}",
+    "copyLink": "Copy subscription link",
+    "otherApps": "See all apps"
+  },
+  "insights": {
+    "dailyAverage": "Daily average",
+    "forecastRunsOut": "at this rate your data runs out in {{days}} days",
+    "forecastEnough": "at this rate your data will last until expiry",
+    "lowData": "Only {{percent}}% of your data is left",
+    "expiringSoon": "Your subscription expires in less than {{days}} days",
+    "renewHint": "Contact support to renew your plan.",
+    "resetStrategy": "Data reset",
+    "nextPlan": "Next plan",
+    "reset": {
+      "no_reset": "No reset",
+      "day": "Daily",
+      "week": "Weekly",
+      "month": "Monthly",
+      "year": "Yearly"
+    }
+  },
+  "install": {
+    "button": "Install app",
+    "title": "Add to Home Screen",
+    "iosStep1": "Tap the Share button in Safari",
+    "iosStep2": "Choose \"Add to Home Screen\"",
+    "iosStep3": "Tap \"Add\"",
+    "close": "Got it"
   }
 }

@@ -132,5 +132,51 @@
       "androidtv": "Android TV",
       "other": "سایر"
     }
+  },
+  "linksView": {
+    "searchPlaceholder": "جستجو با اسم یا کشور...",
+    "all": "همه",
+    "byCountry": "کشور",
+    "fastest": "سریع‌ترین",
+    "copyFastest": "کپی سریع‌ترین",
+    "noResults": "کانفیگی پیدا نشد",
+    "otherCountry": "سایر",
+    "pingFirst": "در حال تست پینگ برای مرتب‌سازی بر اساس سرعت..."
+  },
+  "quickConnect": {
+    "title": "اتصال سریع",
+    "subtitle": "در سه مرحله وصل شوید",
+    "step1": "نصب اپلیکیشن",
+    "step2": "افزودن اشتراک",
+    "step3": "اتصال",
+    "step3Hint": "اپ را باز کنید، یک سرور انتخاب کنید و دکمه اتصال را بزنید",
+    "addTo": "افزودن به {{app}}",
+    "copyLink": "کپی لینک اشتراک",
+    "otherApps": "مشاهده همه اپلیکیشن‌ها"
+  },
+  "insights": {
+    "dailyAverage": "میانگین مصرف روزانه",
+    "forecastRunsOut": "با این روند، حجم شما {{days}} روز دیگر تمام می‌شود",
+    "forecastEnough": "با این روند، حجم شما تا پایان اشتراک کافی است",
+    "lowData": "فقط {{percent}}٪ از حجم شما باقی مانده است",
+    "expiringSoon": "اشتراک شما کمتر از {{days}} روز دیگر تمام می‌شود",
+    "renewHint": "برای تمدید با پشتیبانی در تماس باشید.",
+    "resetStrategy": "ریست حجم",
+    "nextPlan": "پلن بعدی",
+    "reset": {
+      "no_reset": "بدون ریست",
+      "day": "روزانه",
+      "week": "هفتگی",
+      "month": "ماهانه",
+      "year": "سالانه"
+    }
+  },
+  "install": {
+    "button": "نصب اپ",
+    "title": "افزودن به صفحه اصلی",
+    "iosStep1": "در سافاری روی دکمه اشتراک‌گذاری (Share) بزنید",
+    "iosStep2": "گزینه «Add to Home Screen» را انتخاب کنید",
+    "iosStep3": "روی «Add» بزنید",
+    "close": "متوجه شدم"
   }
 }
