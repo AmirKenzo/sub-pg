@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, memo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Copy, Check, ScanQrCode } from 'lucide-react';
+import { Copy, Check, ScanQrCode, Link2 } from 'lucide-react';
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
 import { QRModal } from '@/components/qr-modal';
 import { cn } from '@/lib/utils';
@@ -40,55 +40,39 @@ export const ProminentSubscriptionLink = memo(({ hasChart }: ProminentSubscripti
       "animate-fadeIn",
       hasChart ? 'order-2 lg:order-1' : ''
     )}>
-      <div className="space-y-3 animate-fadeIn">
-        <div className="flex items-center justify-between">
+      <div className="overflow-hidden rounded-2xl border bg-card">
+        <div className="border-b px-4 py-4 sm:px-5">
           <h2 className="page-section-title flex items-center gap-2">
-            <span className="text-xl">🔗</span>
+            <Link2 className="size-5 text-primary" />
             {t('config.title')}
           </h2>
         </div>
-        
-        <div className="group relative p-3 rounded-lg border-2 border-primary/30 bg-primary/5 hover:border-primary/60 transition-all duration-200">
-          <div className="flex items-center gap-2">
-            {/* Subscription Badge */}
-            <div className="page-badge px-2 py-0.5 rounded bg-primary text-primary-foreground shrink-0">
-              SUB
-            </div>
-            
-            {/* Emoji */}
-            <span className="text-sm">📱</span>
-            
-            {/* Name */}
-            <div className="page-item-title flex-1 min-w-0 truncate">
-              {t('config.subscriptionLink')}
-            </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-1 shrink-0">
-              <button
-                onClick={handleCopy}
-                className={`p-1.5 rounded transition-all cursor-pointer ${
-                  isCopied(subscriptionUrl)
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted hover:bg-primary hover:text-primary-foreground'
-                }`}
-                title={t('qr.copy')}
-              >
-                {isCopied(subscriptionUrl) ? (
-                  <Check className="w-3.5 h-3.5" />
-                ) : (
-                  <Copy className="w-3.5 h-3.5" />
-                )}
-              </button>
-              
-              <button
-                onClick={handleShowQR}
-                className="p-1.5 rounded bg-muted hover:bg-secondary transition-all cursor-pointer"
-                title={t('qr.show')}
-              >
-                <ScanQrCode className="w-3.5 h-3.5" />
-              </button>
-            </div>
+        <div className="flex items-center gap-3 bg-primary/5 px-4 py-3 sm:px-5">
+          <span className="page-badge shrink-0 rounded-md bg-primary px-2 py-0.5 text-primary-foreground">
+            SUB
+          </span>
+          <div className="page-item-title min-w-0 flex-1 truncate">
+            {t('config.subscriptionLink')}
+          </div>
+          <div className="flex shrink-0 gap-0.5">
+            <button
+              onClick={handleCopy}
+              className={cn(
+                'inline-flex size-8 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-muted',
+                isCopied(subscriptionUrl) ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              )}
+              title={t('qr.copy')}
+            >
+              {isCopied(subscriptionUrl) ? <Check className="size-4" /> : <Copy className="size-4" />}
+            </button>
+            <button
+              onClick={handleShowQR}
+              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              title={t('qr.show')}
+            >
+              <ScanQrCode className="size-4" />
+            </button>
           </div>
         </div>
       </div>

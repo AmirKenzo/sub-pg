@@ -5,6 +5,7 @@ import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
 import { useTranslation } from "react-i18next"
 import type { TooltipProps } from "recharts"
 import { dateUtils } from "@/lib/dateFormatter"
+import { ChartArea } from "lucide-react"
 
 import {
   Card,
@@ -165,26 +166,27 @@ export const TrafficChart = React.memo(function TrafficChart({
   ]), [t])
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="flex flex-col gap-4 space-y-0 border-b pb-4">
-        <div className="flex flex-wrap items-center justify-between w-full">
-          <CardTitle className="page-section-title">{t('usage.title')}</CardTitle>
-          <div className="flex items-center gap-2 text-sm font-semibold text-primary">
-            {totalUsedBytes > 0 && (
-              <span dir="ltr" className="font-semibold">
-                {formatBytes(totalUsedBytes)}
-              </span>
-            )}
-          </div>
+    <Card className="h-full gap-0 overflow-hidden rounded-2xl py-0 shadow-none">
+      <CardHeader className="flex flex-col gap-3 border-b px-4 py-4 sm:px-5">
+        <div className="flex w-full flex-wrap items-center justify-between gap-2">
+          <CardTitle className="page-section-title flex items-center gap-2">
+            <ChartArea className="size-5 text-primary" />
+            {t('usage.title')}
+          </CardTitle>
+          {totalUsedBytes > 0 && (
+            <span dir="ltr" className="rounded-lg bg-primary/10 px-2.5 py-1 text-sm font-semibold text-primary tabular-nums">
+              {formatBytes(totalUsedBytes)}
+            </span>
+          )}
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex w-full gap-1 overflow-x-auto rounded-lg bg-muted p-1">
           {timeRangeOptions.map((option) => (
             <button
               key={option.value}
               onClick={() => onTimeRangeChange?.(option.value)}
-              className={`px-3 cursor-pointer py-1.5 text-sm font-medium rounded-lg transition-all ${timeRange === option.value
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              className={`flex-1 cursor-pointer whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium transition-all sm:text-sm ${timeRange === option.value
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
                 }`}
             >
               {option.label}
@@ -192,7 +194,7 @@ export const TrafficChart = React.memo(function TrafficChart({
           ))}
         </div>
       </CardHeader>
-      <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6 overflow-x-hidden">
+      <CardContent className="overflow-x-hidden px-2 py-4 sm:px-5 sm:py-5">
         {error ? (
           <div className="h-[250px] w-full flex items-center justify-center text-destructive text-sm">
             {error.message || t('common.error')}
@@ -214,16 +216,16 @@ export const TrafficChart = React.memo(function TrafficChart({
                       <stop
                         offset="5%"
                         stopColor={TRAFFIC_SERIES_COLOR}
-                        stopOpacity={0.8}
+                        stopOpacity={0.35}
                       />
                       <stop
                         offset="95%"
                         stopColor={TRAFFIC_SERIES_COLOR}
-                        stopOpacity={0.1}
+                        stopOpacity={0.02}
                       />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border)" />
                   <XAxis
                     dataKey="date"
                     tickLine={false}
@@ -231,7 +233,7 @@ export const TrafficChart = React.memo(function TrafficChart({
                     tickMargin={8}
                     minTickGap={16}
                     tick={{
-                      fill: 'hsl(var(--muted-foreground))',
+                      fill: 'var(--muted-foreground)',
                       fontSize: 11
                     }}
                     tickFormatter={(value) => {

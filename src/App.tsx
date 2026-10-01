@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useUserInfo, useConfigData, useChartData } from '@/hooks/useUserData';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -11,7 +11,7 @@ import { ConnectionLinks } from '@/components/connection-links';
 import { ProminentSubscriptionLink } from '@/components/prominent-subscription-link';
 import { AppsList } from '@/components/AppsList';
 import { formatRelativeExpiry, formatDate } from '@/lib/dateFormatter';
-import { RefreshCcw, Bell } from 'lucide-react';
+import { RefreshCcw, Bell, ExternalLink, Smartphone } from 'lucide-react';
 import { useDir } from '@/hooks/useDir';
 import { cn } from './lib/utils';
 import type { UsageDataPoint } from '@/types/user';
@@ -182,11 +182,11 @@ function App() {
 
   // Status color mapping
   const statusConfig = {
-    active: { color: 'text-green-500', bgColor: '', borderColor: '', glow: '' },
-    disabled: { color: 'text-gray-500', bgColor: 'bg-gray-500/10', borderColor: 'border-gray-500/20', glow: 'shadow-gray-500/50' },
-    limited: { color: 'text-red-500', bgColor: 'bg-red-500/10', borderColor: 'border-red-500/20', glow: 'shadow-red-500/50' },
-    expired: { color: 'text-yellow-500', bgColor: 'bg-yellow-500/10', borderColor: 'border-yellow-500/20', glow: 'shadow-yellow-500/50' },
-    on_hold: { color: 'text-violet-500', bgColor: 'bg-violet-500/10', borderColor: 'border-violet-500/20', glow: 'shadow-violet-500/50' },
+    active: { text: 'text-emerald-600 dark:text-emerald-400', soft: 'bg-emerald-500/10', fill: 'bg-emerald-500' },
+    disabled: { text: 'text-muted-foreground', soft: 'bg-muted', fill: 'bg-muted-foreground' },
+    limited: { text: 'text-red-600 dark:text-red-400', soft: 'bg-red-500/10', fill: 'bg-red-500' },
+    expired: { text: 'text-amber-600 dark:text-amber-400', soft: 'bg-amber-500/10', fill: 'bg-amber-500' },
+    on_hold: { text: 'text-violet-600 dark:text-violet-400', soft: 'bg-violet-500/10', fill: 'bg-violet-500' },
   };
 
 
@@ -206,12 +206,7 @@ function App() {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
-          <div className="relative">
-            <div className="w-20 h-20 border-4 border-muted border-t-primary rounded-full animate-spin"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-10 h-10 bg-primary/20 rounded-full animate-pulse"></div>
-            </div>
-          </div>
+          <div className="w-10 h-10 border-[3px] border-muted border-t-primary rounded-full animate-spin"></div>
         </div>
       </Layout>
     );
@@ -222,11 +217,10 @@ function App() {
   if (error && !hasData && !isLoading && !isValidating) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center space-y-6 animate-fadeIn p-8 rounded-3xl bg-card border shadow-lg max-w-md">
-            <div className="text-6xl">⚠️</div>
-            <p className="text-2xl font-bold text-destructive">{t('dashboard.error')}</p>
-            <p className="text-muted-foreground">{error.message}</p>
+        <div className="flex items-center justify-center min-h-screen px-4">
+          <div className="text-center space-y-3 animate-fadeIn p-8 rounded-2xl bg-card border max-w-md">
+            <p className="text-lg font-semibold text-destructive">{t('dashboard.error')}</p>
+            <p className="page-meta">{error.message}</p>
           </div>
         </div>
       </Layout>
@@ -236,333 +230,211 @@ function App() {
   if (!effectiveData) return null;
 
   const statusStyle = statusConfig[normalizedStatus as keyof typeof statusConfig] || statusConfig.disabled;
+  const hasDataLimit = !!effectiveData.data_limit && effectiveData.data_limit > 0;
+  const remainingTraffic = !hasDataLimit
+    ? '∞'
+    : formatBytes(Math.max(0, effectiveData.data_limit! - (effectiveData.used_traffic || 0)));
+  const dateLocale = i18n.language === 'fa' ? 'fa-IR' : i18n.language;
+
+  // Expiry date for regular users, available duration for on_hold users
+  const renderExpiryValue = () => {
+    if (effectiveData.status === 'on_hold') {
+      if (!effectiveData.on_hold_expire_duration || effectiveData.on_hold_expire_duration === 0) {
+        return t('userInfo.noTimeLimit');
+      }
+
+      const days = Math.floor(effectiveData.on_hold_expire_duration / 86400);
+      const hours = Math.floor((effectiveData.on_hold_expire_duration % 86400) / 3600);
+
+      return days > 0
+        ? `${days} ${t(days === 1 ? 'time.day' : 'time.days')}`
+        : hours > 0
+          ? `${hours} ${t(hours === 1 ? 'time.hour' : 'time.hours')}`
+          : t('userInfo.noTimeLimit');
+    }
+
+    const isUnlimited = !effectiveData.expire || effectiveData.expire === '0' || effectiveData.expire === '';
+    return isUnlimited ? t('userInfo.noTimeLimit') : formatDate(effectiveData.expire, dateLocale);
+  };
+
+  const hasLinks = !!configData?.links && configData.links.length > 0;
+  const hasChartContainer = !chartError; // Always show chart container if no error (even during loading)
+  const usageData = getChartUsageData(chartData?.stats);
+  const isChartLoading = !chartError && !chartData;
 
   return (
     <Layout>
-      <div className="relative min-h-screen overflow-hidden">
-        {/* Background Elements */}
-        <div className="fixed inset-0 bg-grid-pattern opacity-[0.02] pointer-events-none"></div>
-        <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
-
-        {/* Hero Section */}
-        <div className="relative">
-          <div className="container relative px-4 pt-12 mx-auto max-w-7xl">
-            {/* Header */}
-            <div className="flex sm:items-center sm:justify-between gap-4 sm:gap-0 mb-8 sm:mb-12 animate-fadeIn">
-              <div className="flex-1 min-w-0">
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2 text-foreground">
-                  {t('dashboard.title')}
+      <div className="mx-auto w-full max-w-6xl px-4 pt-6 sm:pt-10 space-y-5 sm:space-y-6">
+        {/* Header */}
+        <header className="flex items-center justify-between gap-4 animate-fadeIn">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-lg font-semibold uppercase text-primary">
+              {effectiveData.username?.charAt(0) || '?'}
+            </div>
+            <div className="min-w-0">
+              <div className="flex min-w-0 items-center gap-2">
+                <h1
+                  dir="ltr"
+                  title={effectiveData.username}
+                  className="truncate text-lg font-semibold text-foreground sm:text-xl max-w-[45vw] sm:max-w-sm"
+                >
+                  {effectiveData.username}
                 </h1>
-                <div className="flex min-w-0 items-center gap-2 text-end sm:gap-3">
-                  <div className="flex min-w-0 max-w-full items-center gap-2 sm:gap-3">
-                    <p
-                      dir="ltr"
-                      title={effectiveData.username}
-                      className="max-w-[45vw] truncate text-start text-sm font-medium text-muted-foreground sm:max-w-[16rem] sm:text-base md:max-w-[20rem] lg:max-w-[24rem]"
-                    >
-                      {effectiveData.username}
-                    </p>
-                    <div className="shrink-0">
-                      <OnlineBadge lastOnline={effectiveData.online_at} showText />
-                    </div>
-                  </div>
-                  {/* Refresh Indicator */}
-                  <button
-                    onClick={() => {
-                      if (!isValidating && normalizedStatus !== 'disabled') {
-                        refresh();
-                      }
-                    }}
-                    disabled={isValidating || normalizedStatus === 'disabled'}
-                    className="shrink-0 cursor-pointer rounded-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:cursor-not-allowed disabled:opacity-50 hover:opacity-80 transition-opacity"
-                    title={normalizedStatus === 'disabled' ? 'Account disabled' : 'Refresh data'}
-                    aria-label={normalizedStatus === 'disabled' ? 'Account disabled' : 'Refresh data'}
-                  >
-                    <RefreshCcw
-                      className={`w-4 h-4 transition-all duration-500 ${isValidating ? 'animate-spin text-primary' : normalizedStatus === 'disabled' ? 'text-muted-foreground/50' : 'text-muted-foreground hover:text-primary'}`}
-                    />
-                  </button>
-                </div>
+                <button
+                  onClick={() => {
+                    if (!isValidating && normalizedStatus !== 'disabled') {
+                      refresh();
+                    }
+                  }}
+                  disabled={isValidating || normalizedStatus === 'disabled'}
+                  className="shrink-0 cursor-pointer rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:cursor-not-allowed disabled:opacity-50"
+                  title={normalizedStatus === 'disabled' ? 'Account disabled' : 'Refresh data'}
+                  aria-label={normalizedStatus === 'disabled' ? 'Account disabled' : 'Refresh data'}
+                >
+                  <RefreshCcw className={cn('size-3.5', isValidating && 'animate-spin text-primary')} />
+                </button>
               </div>
-              <div className="flex items-center gap-2 sm:gap-3">
-                <LanguageSwitcher />
-                <ThemeToggle />
+              <OnlineBadge lastOnline={effectiveData.online_at} showText />
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <LanguageSwitcher />
+            <ThemeToggle />
+          </div>
+        </header>
+
+        {/* Announcements */}
+        {hasAnnouncement && (
+          <div className="flex items-start gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4 animate-fadeIn">
+            <Bell className="mt-0.5 size-4 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="text-sm font-semibold text-foreground">{t('userInfo.announcement')}</div>
+              {announcementMessage && (
+                <p className="page-meta whitespace-pre-wrap break-words">{announcementMessage}</p>
+              )}
+              {announceUrl && (
+                <a
+                  href={announceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                >
+                  {t('userInfo.viewAnnouncement')}
+                  <ExternalLink className="size-3.5" />
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Status & usage */}
+        <section className="rounded-2xl border bg-card p-5 sm:p-6 animate-fadeIn">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="space-y-4">
+              <span className={cn('inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold', statusStyle.soft, statusStyle.text)}>
+                <span className={cn('size-1.5 rounded-full', statusStyle.fill, normalizedStatus === 'active' && 'animate-pulse')} />
+                {t(`status.${normalizedStatus}`)}
+              </span>
+              <div>
+                <p className="page-label">{t('userInfo.usedTraffic')}</p>
+                <div dir="ltr" className={cn('mt-1 flex items-baseline gap-2', dir === 'rtl' && 'justify-end')}>
+                  <span className="text-3xl font-bold tracking-tight text-foreground tabular-nums sm:text-4xl">
+                    {formatBytes(effectiveData.used_traffic || 0)}
+                  </span>
+                  <span className="text-sm font-medium text-muted-foreground sm:text-base">
+                    / {hasDataLimit ? formatBytes(effectiveData.data_limit!) : t('userInfo.unlimited')}
+                  </span>
+                </div>
               </div>
             </div>
+            <div className="text-start sm:text-end">
+              <p className={cn('page-label', expiryInfo.isExpired && 'text-destructive')}>{expiryInfo.status}</p>
+              <p className="mt-1 text-lg font-semibold text-foreground sm:text-xl">{expiryInfo.time}</p>
+            </div>
+          </div>
 
-            {/* Announcements */}
-            {hasAnnouncement && (
-              <div className="mb-6 sm:mb-8 animate-fadeIn">
-                <div className="p-4 rounded-2xl border bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20 hover:shadow-lg transition-all duration-300">
-                  <div className="flex items-start gap-3">
-                    <div className="shrink-0 mt-0.5">
-                      <Bell className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="page-label mb-1 text-foreground">
-                        {t('userInfo.announcement')}
-                      </div>
-                      {announcementMessage && (
-                        <p className="page-meta mb-2 whitespace-pre-wrap break-words">
-                          {announcementMessage}
-                        </p>
-                      )}
-                      {announceUrl && (
-                        <a
-                          href={announceUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-sm text-primary hover:underline font-medium"
-                        >
-                          {t('userInfo.viewAnnouncement')}
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
+          <div className="mt-6 space-y-2">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className={cn('h-full rounded-full transition-all duration-1000 ease-out', statusStyle.fill)}
+                style={{ width: `${hasDataLimit ? usagePercentage : 0}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">
+                <span dir="ltr" className="font-semibold text-foreground tabular-nums">
+                  {hasDataLimit ? `${usagePercentage.toFixed(0)}%` : '∞'}
+                </span>{' '}
+                {t('userInfo.used')}
+              </span>
+              <span className="text-muted-foreground">
+                {t('remaining')}:{' '}
+                <span dir="ltr" className="font-semibold text-foreground tabular-nums">{remainingTraffic}</span>
+              </span>
+            </div>
+          </div>
+        </section>
+
+        {/* Quick stats */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 animate-fadeIn">
+          <StatTile label={t('userInfo.lifetimeTraffic')}>
+            <span dir="ltr">{formatBytes(effectiveData.lifetime_used_traffic || 0)}</span>
+          </StatTile>
+          <StatTile label={effectiveData.status === 'on_hold' ? t('userInfo.duration') : t('userInfo.expiryDate')}>
+            <span dir={effectiveData.status === 'on_hold' ? dir : 'ltr'}>{renderExpiryValue()}</span>
+          </StatTile>
+          <StatTile label={t('userInfo.lastOnline')} className="col-span-2 sm:col-span-1">
+            <span dir="ltr" className="inline-flex items-center gap-2">
+              <OnlineBadge lastOnline={effectiveData.online_at} />
+              {effectiveData.online_at ? formatDate(effectiveData.online_at, dateLocale) : t('notConnectedYet')}
+            </span>
+          </StatTile>
+        </div>
+
+        {/* Links & usage chart */}
+        {(hasLinks || hasChartContainer) && (
+          <div className={cn('grid grid-cols-1 gap-5 sm:gap-6 w-full', hasLinks && hasChartContainer && 'lg:grid-cols-2')}>
+            {hasLinks ? (
+              <div className={cn('min-w-0', hasChartContainer && 'order-2 lg:order-1')}>
+                <ConnectionLinks links={configData.links} />
               </div>
+            ) : (
+              <ProminentSubscriptionLink hasChart={hasChartContainer} />
             )}
 
-            {/* Status Hero Card */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-              {/* Main Status Card */}
-              <div className={`lg:col-span-2 relative p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl border ${statusStyle.borderColor} bg-card shadow-lg animate-fadeIn hover:shadow-xl transition-all duration-300`}>
-                <div className={`absolute inset-0 ${statusStyle.bgColor} rounded-2xl sm:rounded-3xl -z-10`}></div>
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                      <span className={`text-2xl sm:text-3xl lg:text-4xl font-bold ${statusStyle.color}`}>
-                        {t(`status.${normalizedStatus}`).toUpperCase()}
-                      </span>
-                      <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${statusStyle.color.replace('text-', 'bg-')} animate-pulse`}></div>
-                    </div>
-                  </div>
-                  <div className="">
-                    <div className={`page-label ${expiryInfo.isExpired ? 'text-destructive' : 'text-muted-foreground'}`}>
-                      {expiryInfo.status}
-                    </div>
-                    <p className="page-metric-value">{expiryInfo.time}</p>
-                  </div>
-                </div>
-
-                {/* Circular Progress */}
-                <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8">
-                  <div className="relative w-32 h-32 sm:w-36 sm:h-36 lg:w-40 lg:h-40 shrink-0">
-                    <svg className="transform -rotate-90 w-full h-full">
-                      <circle
-                        cx="50%"
-                        cy="50%"
-                        r="45%"
-                        stroke="currentColor"
-                        strokeWidth="12"
-                        fill="none"
-                        className="text-muted/20"
-                      />
-                      {usagePercentage > 0 && usagePercentage < 100 && (
-                        <circle
-                          cx="50%"
-                          cy="50%"
-                          r="45%"
-                          stroke="currentColor"
-                          strokeWidth="12"
-                          fill="none"
-                          strokeDasharray={`${2 * Math.PI * 70}`}
-                          strokeDashoffset={`${2 * Math.PI * 70 * (1 - usagePercentage / 100)}`}
-                          className={cn(
-                            statusStyle.color,
-                            "transition-all duration-1000 ease-out"
-                          )}
-                          strokeLinecap="round"
-                        />
-                      )}
-                      {usagePercentage >= 100 && (
-                        <circle
-                          cx="50%"
-                          cy="50%"
-                          r="45%"
-                          stroke="currentColor"
-                          strokeWidth="12"
-                          fill="none"
-                          className={cn(
-                            statusStyle.color,
-                            "transition-all duration-1000 ease-out"
-                          )}
-                        />
-                      )}
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-2xl sm:text-3xl font-bold">{Math.min(usagePercentage, 100).toFixed(0)}%</span>
-                      <span className="page-label">{t('userInfo.used')}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 w-full space-y-4 sm:space-y-5">
-                    <div className="flex justify-between items-center">
-                      <span className="page-label">{t('userInfo.totalLimit')}</span>
-                      <span dir="ltr" className="page-value">
-                        {effectiveData.data_limit && effectiveData.data_limit > 0 ? formatBytes(effectiveData.data_limit) : t('userInfo.unlimited')}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="page-label">{t('userInfo.usedTraffic')}</span>
-                      <span dir="ltr" className="page-value">
-                        {formatBytes(effectiveData.used_traffic || 0)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="page-label">{t('remaining')}</span>
-                      <span dir="ltr" className="page-value text-green-600 dark:text-green-500">
-                        {!effectiveData.data_limit || effectiveData.data_limit === 0
-                          ? '∞'
-                          : effectiveData.used_traffic !== null && effectiveData.used_traffic !== undefined
-                            ? formatBytes(Math.max(0, effectiveData.data_limit - effectiveData.used_traffic))
-                            : formatBytes(effectiveData.data_limit)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+            {hasChartContainer && (
+              <div className={cn('min-w-0 w-full animate-fadeIn', hasLinks && 'order-1 lg:order-2')}>
+                <TrafficChart
+                  data={usageData}
+                  isLoading={isChartLoading}
+                  error={chartError}
+                  timeRange={timeRange}
+                  onTimeRangeChange={setTimeRange}
+                />
               </div>
-
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 gap-4 sm:gap-6">
-                <div className="relative p-4 sm:p-6 rounded-2xl border bg-card overflow-hidden animate-fadeIn hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 group">
-                  <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="relative z-10">
-                    <div className="page-label mb-2">{t('userInfo.lifetimeTraffic')}</div>
-                    <div dir="ltr" className="page-metric-value sm:text-3xl">
-                      {formatBytes(effectiveData.lifetime_used_traffic || 0)}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="relative p-4 sm:p-6 rounded-2xl border bg-card overflow-hidden animate-fadeIn hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 group">
-                  <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="relative z-10">
-                    <div className="page-label mb-2">
-                      {effectiveData.status === 'on_hold' ? t('userInfo.duration') : t('userInfo.expiryDate')}
-                    </div>
-                    {(() => {
-                      // For on_hold status, show available duration
-                      if (effectiveData.status === 'on_hold') {
-                        if (!effectiveData.on_hold_expire_duration || effectiveData.on_hold_expire_duration === 0) {
-                          return (
-                            <div dir="ltr" className="page-value">
-                              {t('userInfo.noTimeLimit')}
-                            </div>
-                          );
-                        }
-
-                        const days = Math.floor(effectiveData.on_hold_expire_duration / 86400);
-                        const hours = Math.floor((effectiveData.on_hold_expire_duration % 86400) / 3600);
-
-                        return (
-                          <div
-                            dir={dir === "rtl" ? "rtl" : "ltr"}
-                            className="page-value"
-                          >
-                            {days > 0
-                              ? `${days} ${t(days === 1 ? 'time.day' : 'time.days')}`
-                              : hours > 0
-                                ? `${hours} ${t(hours === 1 ? 'time.hour' : 'time.hours')}`
-                                : t('userInfo.noTimeLimit')}
-                          </div>
-                        );
-                      }
-                      // For other statuses
-                      const isUnlimited = !effectiveData.expire || effectiveData.expire === '0' || effectiveData.expire === '';
-                      return (
-                        <div dir='ltr' className="page-value">
-                          {isUnlimited
-                            ? t('userInfo.noTimeLimit')
-                            : formatDate(effectiveData.expire, i18n.language === 'fa' ? 'fa-IR' : i18n.language)}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-
-                <div className="relative p-4 sm:p-6 rounded-2xl border bg-card overflow-hidden animate-fadeIn hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 group">
-                  <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="relative z-10">
-                    <div className="page-label mb-2">{t('userInfo.lastOnline')}</div>
-                    <div dir="ltr" className="flex flex-wrap items-center gap-2">
-                      <OnlineBadge lastOnline={effectiveData.online_at} />
-                      <div className="text-sm font-medium text-foreground break-all">
-                        {effectiveData.online_at ? formatDate(effectiveData.online_at, i18n.language === 'fa' ? 'fa-IR' : i18n.language) : t('notConnectedYet')}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
-        </div>
+        )}
 
-        {/* Content Section */}
-        <div className="container relative px-4 py-6 sm:py-12 mx-auto max-w-7xl overflow-x-hidden">
-
-          {/* Conditional rendering based on available data */}
-          {(() => {
-            const hasLinks = configData?.links && configData.links.length > 0;
-            const hasChartContainer = !chartError; // Always show chart container if no error (even during loading)
-
-            if (!hasLinks && !hasChartContainer) {
-              return null;
-            }
-
-            const usageData = getChartUsageData(chartData?.stats);
-            const isChartLoading = !chartError && !chartData;
-
-            return (
-              <div className={`grid grid-cols-1 gap-6 sm:gap-8 w-full ${hasLinks && hasChartContainer ? 'lg:grid-cols-2' : ''}`}>
-                {/* Connection Links - Order 2 on mobile, 1 on desktop */}
-                {hasLinks ? (
-                  <div className={hasChartContainer ? 'order-2 lg:order-1' : ''}>
-                    <ConnectionLinks links={configData.links} />
-                  </div>
-                ) : (
-                  <ProminentSubscriptionLink hasChart={hasChartContainer} />
-                )}
-
-                {/* Usage Chart - Order 1 on mobile, 2 on desktop */}
-                {hasChartContainer && (
-                  <div className={cn("space-y-4 animate-fadeIn w-full min-w-0", hasLinks && 'order-1 lg:order-2')}>
-                    <TrafficChart
-                      data={usageData}
-                      isLoading={isChartLoading}
-                      error={chartError}
-                      timeRange={timeRange}
-                      onTimeRangeChange={setTimeRange}
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* Separator */}
-          <div className="my-8 sm:my-12">
-            <div className="flex items-center gap-4 animate-fadeIn">
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
-              <div className="px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 text-sm font-medium text-primary border border-primary/20 hover:border-primary/30 transition-all duration-300 hover:scale-105">
-                <span className="text-sm mr-2 animate-bounce">📱</span>
-                {t('apps.title')}
-              </div>
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
-            </div>
-          </div>
-
-          {/* Apps section under chart and configs */}
-          <div className="mt-6 sm:mt-8">
-            <AppsList />
-          </div>
-        </div>
+        {/* Apps */}
+        <section className="space-y-3 pt-2 animate-fadeIn">
+          <h2 className="page-section-title flex items-center gap-2">
+            <Smartphone className="size-5 text-primary" />
+            {t('apps.title')}
+          </h2>
+          <AppsList />
+        </section>
       </div>
     </Layout>
+  );
+}
+
+function StatTile({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
+  return (
+    <div className={cn('rounded-2xl border bg-card p-4 sm:p-5', className)}>
+      <p className="page-label">{label}</p>
+      <div className="mt-1.5 text-base font-semibold text-foreground break-words">{children}</div>
+    </div>
   );
 }
 

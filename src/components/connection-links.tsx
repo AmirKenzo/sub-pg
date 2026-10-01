@@ -1,6 +1,6 @@
 import { useState, memo, useMemo, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Copy, Check, ScanQrCode, Files, Download } from 'lucide-react';
+import { Copy, Check, ScanQrCode, Files, Download, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
 import { parseLinks, type ParsedLink } from '@/lib/linkParser';
@@ -94,146 +94,110 @@ export const ConnectionLinks = memo(({ links }: ConnectionLinksProps) => {
     return protocol;
   }, []);
 
+  const iconButtonClass = 'inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors cursor-pointer hover:bg-muted hover:text-foreground';
+
   return (
-    <div className="space-y-3 animate-fadeIn">
-      <div className="flex items-center justify-between">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border bg-card animate-fadeIn">
+      <div className="flex items-center justify-between gap-3 border-b px-4 py-4 sm:px-5">
         <h2 className="page-section-title flex items-center gap-2">
-          <span className="text-xl">🔗</span>
+          <Link2 className="size-5 text-primary" />
           {t('config.title')}
         </h2>
         <button
           onClick={handleCopyAll}
-          className={`group cursor-pointer flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-lg ${copyAllSuccess
-              ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/25'
-              : 'bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-primary/25'
-            }`}
+          className={cn(
+            'inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors',
+            copyAllSuccess
+              ? 'border-primary/40 bg-primary/10 text-primary'
+              : 'text-foreground hover:bg-muted'
+          )}
           title={copyAllSuccess ? t('apps.copyAllSuccess') : t('apps.copyAll')}
         >
-          {copyAllSuccess ? (
-            <Check className="w-4 h-4 transition-transform duration-200 animate-pulse" />
-          ) : (
-            <Files className="w-4 h-4 transition-transform duration-200 group-hover:rotate-12" />
-          )}
-          <span className="transition-all duration-200 group-hover:translate-x-0.5">
-            {copyAllSuccess ? t('apps.copyAllSuccess') : t('apps.copyAll')}
-          </span>
+          {copyAllSuccess ? <Check className="size-4" /> : <Files className="size-4" />}
+          {copyAllSuccess ? t('apps.copyAllSuccess') : t('apps.copyAll')}
         </button>
       </div>
 
-      <div className="max-h-[400px] overflow-y-auto space-y-2">
+      <div className="max-h-[420px] flex-1 divide-y overflow-y-auto">
         {/* Subscription Link */}
-        <div className="group relative p-3 rounded-lg border-2 border-primary/30 bg-primary/5 hover:border-primary/60 transition-all duration-200">
-          <div className="flex items-center gap-2">
-            {/* Subscription Badge */}
-            <div className="page-badge px-2 py-0.5 rounded bg-primary text-primary-foreground shrink-0">
-              SUB
-            </div>
-
-            {/* Emoji */}
-            <span className="text-sm">📱</span>
-
-            {/* Name */}
-            <div className="page-item-title flex-1 min-w-0 truncate">
-              {t('config.subscriptionLink')}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-1 shrink-0">
-              <button
-                onClick={handleCopySubscription}
-                className={`p-1.5 rounded transition-all cursor-pointer ${isCopied(subscriptionUrl)
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted hover:bg-primary hover:text-primary-foreground'
-                  }`}
-                title={t('qr.copy')}
-              >
-                {isCopied(subscriptionUrl) ? (
-                  <Check className="w-3.5 h-3.5" />
-                ) : (
-                  <Copy className="w-3.5 h-3.5" />
-                )}
-              </button>
-
-              <button
-                onClick={() => handleShowQR({
-                  protocol: 'unknown',
-                  name: t('config.subscriptionLink'),
-                  emoji: '📱',
-                  raw: subscriptionUrl
-                })}
-                className="p-1.5 rounded bg-muted hover:bg-secondary transition-all cursor-pointer"
-                title={t('qr.show')}
-              >
-                <ScanQrCode className="w-3.5 h-3.5" />
-              </button>
-            </div>
+        <div className="flex items-center gap-3 bg-primary/5 px-4 py-3 sm:px-5">
+          <span className="page-badge shrink-0 rounded-md bg-primary px-2 py-0.5 text-primary-foreground">
+            SUB
+          </span>
+          <div className="page-item-title min-w-0 flex-1 truncate">
+            {t('config.subscriptionLink')}
+          </div>
+          <div className="flex shrink-0 gap-0.5">
+            <button
+              onClick={handleCopySubscription}
+              className={cn(iconButtonClass, isCopied(subscriptionUrl) && 'text-primary')}
+              title={t('qr.copy')}
+            >
+              {isCopied(subscriptionUrl) ? <Check className="size-4" /> : <Copy className="size-4" />}
+            </button>
+            <button
+              onClick={() => handleShowQR({
+                protocol: 'unknown',
+                name: t('config.subscriptionLink'),
+                emoji: '📱',
+                raw: subscriptionUrl
+              })}
+              className={iconButtonClass}
+              title={t('qr.show')}
+            >
+              <ScanQrCode className="size-4" />
+            </button>
           </div>
         </div>
-        <div className="space-y-2 xl:max-h-[400px] xl:overflow-y-auto xl:min-h-0">
-          {parsedLinks.map((link, index) => {
-            const copied = isCopied(`${link.raw}:config`);
 
-            return (
-              <div
-                key={index}
-                className="group relative p-3 rounded-lg border bg-card hover:border-primary/50 transition-all duration-200"
-              >
-                <div className="flex items-center gap-2">
-                  {/* Protocol Badge */}
-                  <div className="page-badge px-2 py-0.5 rounded bg-primary text-primary-foreground shrink-0">
-                    {getProtocolBadge(link.protocol)}
-                  </div>
+        {parsedLinks.map((link, index) => {
+          const copied = isCopied(`${link.raw}:config`);
 
-                  {/* Emoji */}
-                  {link.emoji && (
-                    <span className="text-sm">{link.emoji}</span>
-                  )}
+          return (
+            <div
+              key={index}
+              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40 sm:px-5"
+            >
+              {/* Protocol Badge */}
+              <span className="page-badge min-w-11 shrink-0 rounded-md bg-primary/10 px-2 py-0.5 text-center text-primary">
+                {getProtocolBadge(link.protocol)}
+              </span>
 
-                  {/* Name */}
-                  <div dir="ltr" className={cn("page-item-title flex-1 min-w-0 truncate", dir === 'rtl' ? 'text-right' : 'text-left')}>
-                    {link.name}
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-1 shrink-0">
-                    {getWireGuardDownloadPayload(link.raw) && (
-                      <button
-                        onClick={() => handleDownloadWireGuard(link)}
-                        className="p-1.5 rounded bg-muted hover:bg-secondary transition-all cursor-pointer"
-                        title={t('configActions.downloadWireGuard')}
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleCopy(link)}
-                      className={`p-1.5 rounded transition-all cursor-pointer ${copied
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted hover:bg-primary hover:text-primary-foreground'
-                        }`}
-                      title={link.protocol === 'unknown' ? t('qr.copy') : t('configActions.copyConfig')}
-                    >
-                      {copied ? (
-                        <Check className="w-3.5 h-3.5" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-
-                    <button
-                      onClick={() => handleShowQR(link)}
-                      className="p-1.5 rounded bg-muted hover:bg-secondary transition-all cursor-pointer"
-                      title={t('qr.show')}
-                    >
-                      <ScanQrCode className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
+              {/* Name */}
+              <div dir="ltr" className={cn('page-item-title flex min-w-0 flex-1 items-center gap-2', dir === 'rtl' ? 'justify-end text-right' : 'text-left')}>
+                {link.emoji && <span className="shrink-0 text-sm">{link.emoji}</span>}
+                <span className="truncate">{link.name}</span>
               </div>
-            );
-          })}
-        </div>
 
+              {/* Action Buttons */}
+              <div className="flex shrink-0 gap-0.5">
+                {getWireGuardDownloadPayload(link.raw) && (
+                  <button
+                    onClick={() => handleDownloadWireGuard(link)}
+                    className={iconButtonClass}
+                    title={t('configActions.downloadWireGuard')}
+                  >
+                    <Download className="size-4" />
+                  </button>
+                )}
+                <button
+                  onClick={() => handleCopy(link)}
+                  className={cn(iconButtonClass, copied && 'text-primary')}
+                  title={link.protocol === 'unknown' ? t('qr.copy') : t('configActions.copyConfig')}
+                >
+                  {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+                </button>
+                <button
+                  onClick={() => handleShowQR(link)}
+                  className={iconButtonClass}
+                  title={t('qr.show')}
+                >
+                  <ScanQrCode className="size-4" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Keep the dialog mounted after close so Radix can play exit animations */}
